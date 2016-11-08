@@ -1,15 +1,14 @@
-module Test.Runner.Html exposing (run, runWithOptions)
+module Test.Runner.Html exposing (run, runWithOptions, TestProgram)
 
 {-| HTML Runner
 
 Runs tests in a browser and reports the results in the DOM. You can bring up
 one of these tests in elm-reactor to have it run and show outputs.
 
-@docs run, runWithOptions
+@docs run, runWithOptions, TestProgram
 
 -}
 
-import Test exposing (Test)
 import Test.Runner exposing (formatLabels)
 import Expect exposing (Expectation)
 import Html exposing (..)
@@ -17,10 +16,12 @@ import Html.Attributes exposing (..)
 import Dict exposing (Dict)
 import Task
 import Set exposing (Set)
-import Test.Runner.Html.App
+import Test.Runner.Html.App as App
+import Test.Runner.Html.App.Internal as AppInternal exposing (Msg(..), Model(..), SubUpdate)
 import String
-import Random.Pcg as Random
 import Time exposing (Time)
+import Test exposing (Test)
+import Random.Pcg as Random
 
 
 type alias TestId =
@@ -143,7 +144,7 @@ view model =
 
         failures : List ( List String, List Expectation )
         failures =
-            List.filter (snd >> List.any ((/=) Expect.pass)) model.completed
+            List.filter (Tuple.second >> List.any ((/=) Expect.pass)) model.completed
     in
         div [ style [ ( "width", "960px" ), ( "margin", "auto 40px" ), ( "font-family", "verdana, sans-serif" ) ] ]
             [ summary
@@ -154,11 +155,6 @@ view model =
 resultsStyle : Html.Attribute a
 resultsStyle =
     style [ ( "font-size", "14px" ), ( "line-height", "1.3" ), ( "font-family", "Menlo, Consolas, \"Fira Mono\", \"DejaVu Sans Mono\", \"Liberation Monospace\", \"Liberation Mono\", Monaco, \"Lucida Console\", \"Courier New\", monospace" ) ]
-
-
-never : Never -> a
-never a =
-    never a
 
 
 viewFailures : ( List String, List Expectation ) -> Html a
@@ -212,7 +208,7 @@ update msg model =
         Dispatch ->
             case model.queue of
                 [] ->
-                    ( model, Task.perform never Finish Time.now )
+                    ( model, Task.perform Finish Time.now )
 
                 testId :: newQueue ->
                     case Dict.get testId model.available of
@@ -245,7 +241,7 @@ update msg model =
 dispatch : Cmd Msg
 dispatch =
     Task.succeed Dispatch
-        |> Task.perform identity identity
+        |> Task.perform identity
 
 
 init : Time -> List (() -> ( List String, List Expectation )) -> ( Model, Cmd Msg )
@@ -258,7 +254,7 @@ init startTime thunks =
         model =
             { available = Dict.fromList indexedThunks
             , running = Set.empty
-            , queue = List.map fst indexedThunks
+            , queue = List.map Tuple.first indexedThunks
             , completed = []
             , startTime = startTime
             , finishTime = Nothing
@@ -272,12 +268,18 @@ formatDuration time =
     toString time ++ " ms"
 
 
+{-| A HTML test runner program.
+-}
+type alias TestProgram =
+    Program Never (AppInternal.Model Msg Model) (AppInternal.Msg Msg)
+
+
 {-| Run the test and report the results.
 
 Fuzz tests use a default run count of 100, and an initial seed based on the
 system time when the test runs begin.
 -}
-run : Test -> Program Never
+run : Test -> TestProgram
 run =
     runWithOptions Nothing Nothing
 
@@ -285,9 +287,13 @@ run =
 {-| Run the test using the provided options. If `Nothing` is provided for either
 `runs` or `seed`, it will fall back on the options used in [`run`](#run).
 -}
-runWithOptions : Maybe Int -> Maybe Random.Seed -> Test -> Program Never
+runWithOptions :
+    Maybe Int
+    -> Maybe Random.Seed
+    -> Test
+    -> TestProgram
 runWithOptions runs seed =
-    Test.Runner.Html.App.run
+    App.run
         { runs = runs
         , seed = seed
         }
