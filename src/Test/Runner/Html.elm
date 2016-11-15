@@ -21,7 +21,6 @@ import Test.Runner.Html.App as App
 import String
 import Random.Pcg as Random
 import Time exposing (Time)
-import Tuple
 
 
 type alias TestId =
