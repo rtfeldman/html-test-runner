@@ -18,6 +18,7 @@ import Dict exposing (Dict)
 import Task
 import Set exposing (Set)
 import Test.Runner.Html.App as App
+import Test.Runner.Html.App.Internal as AppInternal exposing (Msg(..), Model(..), SubUpdate)
 import String
 import Random.Pcg as Random
 import Time exposing (Time)
@@ -45,7 +46,7 @@ type Msg
 {-| A program which will run tests and report their results.
 -}
 type alias TestProgram =
-    Program Never (App.Model Msg Model) (App.Msg Msg)
+    Program Never (AppInternal.Model Msg Model) (AppInternal.Msg Msg)
 
 
 viewLabels : List String -> List (Html a)

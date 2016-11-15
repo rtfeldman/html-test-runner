@@ -1,8 +1,8 @@
-module Test.Runner.Html.App exposing (Model, Msg, run)
+module Test.Runner.Html.App exposing (run)
 
 {-| Test runner for a Html.App
 
-@docs run, Model, Msg
+@docs run
 
 -}
 
@@ -12,19 +12,8 @@ import Expect exposing (Expectation)
 import Html exposing (Html, text)
 import Task
 import Random.Pcg as Random
+import Test.Runner.Html.App.Internal exposing (Msg(..), Model(..), SubUpdate)
 import Time exposing (Time)
-
-
-{-| -}
-type Msg subMsg
-    = Init Time
-    | SubMsg subMsg
-
-
-{-| -}
-type Model subMsg subModel
-    = Uninitialized (SubUpdate subMsg subModel) (Maybe Random.Seed) Int Test (Time -> List (() -> ( List String, List Expectation )) -> ( subModel, Cmd subMsg ))
-    | Initialized (SubUpdate subMsg subModel) subModel
 
 
 timeToSeed : Time -> Random.Seed
@@ -81,10 +70,6 @@ initOrView view model =
 
         Initialized _ subModel ->
             Html.map SubMsg (view subModel)
-
-
-type alias SubUpdate msg model =
-    msg -> model -> ( model, Cmd msg )
 
 
 type alias RunnerOptions =
